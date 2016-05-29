@@ -1,0 +1,8 @@
+***LINE: 1  missing 'begin'
+***LINE: 5  variable re-define 'n'
+***LINE: 6  undefined identifier 'k'
+***LINE: 7  extra ';'
+***LINE: 9  undefined identifier 'readm'
+***LINE: 9  missing ':='
+***LINE:10  undefined identifier 'm'
+***LINE:11  extra ';'

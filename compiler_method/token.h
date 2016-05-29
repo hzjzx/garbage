@@ -42,11 +42,11 @@ private:
 
 public:
 	Token(std::string str);
-	const std::string& str()
+	const std::string& str() const
 	{
 		return m_str;
 	}
-	Type type()
+	Type type() const
 	{
 		return m_type;
 	}

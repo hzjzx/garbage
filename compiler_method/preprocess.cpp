@@ -126,4 +126,5 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 			break;
 		}
 	}
+	ptoken("EOF", out);
 }
