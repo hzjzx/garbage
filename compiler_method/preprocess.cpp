@@ -4,16 +4,26 @@
 #include <string>
 #include <cstdio>
 
-void ptoken(std::string str, FILE* out)
+static size_t line;
+FILE* out;
+FILE* err;
+
+void ptoken(std::string str)
 {
-	Token token(str);
-	fprintf(out, "%16s %2d\n", token.str().c_str(), token.type());
+		Token token(str);
+		fprintf(out, "%16s %2d\n", token.str().c_str(), token.type());
+		if (token.type() == Token::Type::Error)
+		{
+			fprintf(err, "***LINE:%2d  %s '%s'\n", line, "invalid identifier", str.c_str());
+		}
 }
 
-void preprocess(FILE* in, FILE* out, FILE* err)
+void preprocess(FILE* in, FILE* _out, FILE* _err)
 {
 	std::string str;
-	size_t line = 0;
+	line = 1;
+	out = _out;
+	err = _err;
 
 	while (!feof(in))
 	{
@@ -24,17 +34,17 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 		case '\r':
 			if (str.size() > 0)
 			{
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			break;
 		case '\n':
 			if (str.size() > 0)
 			{
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
-			ptoken("EOLN", out);
+			ptoken("EOLN");
 			line++;
 			break;
 		case ';':
@@ -47,17 +57,17 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 		case '=':
 			if (str.size() > 0)
 			{
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			str.push_back(ch);
-			ptoken(str, out);
+			ptoken(str);
 			str.clear();
 			break;
 		case '<':
 			if (str.size() > 0)
 			{
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			str.push_back(ch);
@@ -65,18 +75,18 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 			if (ch == '=')
 			{
 				str.push_back(ch);
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			else if (ch == '>')
 			{
 				str.push_back(ch);
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			else
 			{
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 				str.push_back(ch);
 			}
@@ -84,7 +94,7 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 		case '>':
 			if (str.size() > 0)
 			{
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			str.push_back(ch);
@@ -92,12 +102,12 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 			if (ch == '=')
 			{
 				str.push_back(ch);
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			else
 			{
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 				str.push_back(ch);
 			}
@@ -105,7 +115,7 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 		case ':':
 			if (str.size() > 0)
 			{
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			str.push_back(ch);
@@ -113,12 +123,12 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 			if (ch == '=')
 			{
 				str.push_back(ch);
-				ptoken(str, out);
+				ptoken(str);
 				str.clear();
 			}
 			else
 			{
-				fprintf(err, "***LINE%d:  missing '='\n", line);
+				fprintf(err, "***LINE:%2d  missing '='\n", line);
 			}
 			break;
 		default:
@@ -126,5 +136,5 @@ void preprocess(FILE* in, FILE* out, FILE* err)
 			break;
 		}
 	}
-	ptoken("EOF", out);
+	ptoken("EOF");
 }

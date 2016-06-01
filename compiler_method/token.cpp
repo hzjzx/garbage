@@ -38,6 +38,10 @@ Token::Token(std::string str):
 			if ((ch < '0') || (ch > '9'))
 			{
 				m_type = Type::Identifier;
+				if (str[0] >= '0' && str[0] <= '9')
+				{
+					m_type = Type::Error;
+				}
 				return;
 			}
 		}

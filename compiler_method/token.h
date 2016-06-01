@@ -33,7 +33,8 @@ public:
 		BracketRight = 22,
 		Semi = 23,
 		EOLN = 24,
-		EOFL = 25
+		EOFL = 25,
+		Error
 	};
 
 private:
