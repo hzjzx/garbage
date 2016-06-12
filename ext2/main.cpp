@@ -24,7 +24,7 @@ void usage()
 int main(int argc, char** argv)
 {
 	FakeDisk fd("test.img");
-	FakeDisk::File* pf = fd.open("/dir1/dir11/file111");
+	FakeDisk::File* pf = fd.open("/file2");
 
 	if (pf)
 	{
@@ -36,5 +36,8 @@ int main(int argc, char** argv)
 		printf("file not found\n");
 	}
 
-	return 0; 
+	FakeDisk::File* p = fd.create("/file2", ext2::DirectoryEntry::Type::RegularFile);
+	FakeDisk::File* d = fd.create("/dir2", ext2::DirectoryEntry::Type::Directory);
+	auto a = fd.remove("/file2");
+	return 0;                                                
 }
