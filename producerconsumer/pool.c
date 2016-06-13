@@ -1,46 +1,51 @@
 #include "pool.h"
+#include <stddef.h>
 #include <stdlib.h>
 
 void pool_init(pool_t* pp)
 {
     pp->head = NULL;
-    pthread_mutex_init(&pp->mtxc, NULL);  
-    pthread_mutex_init(&pp->mtxp, NULL); 
-    pp->cond = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_init(&pp->mtx_p, NULL);
+    pthread_mutex_init(&pp->mtx_c, NULL);
+    sem_init(&pp->sem_empty, 0, 0);
+    pp->count = 0;
 }
 
-void pool_put(pool_t* pp, int data)
+
+void pool_put(pool_t* pp, data_t* pd)
 {
-    pthread_mutex_lock(&pp->mtxp);
-    node_t** ppn = &pp->head;
-    while(*ppn)
-    {
-        ppn = &(*ppn)->next;
-    }
-    *ppn = (node_t*)malloc(sizeof(node_t));
-    (*ppn)->next = NULL;
-    (*ppn)->data = data;
-    pthread_mutex_unlock(&pp->mtxp);
-    pthread_cond_signal(&pp->cond);
+     pthread_mutex_lock(&pp->mtx_p);
+     
+     node_t* tmp = (node_t*)malloc(sizeof(node_t));
+     tmp->next = pp->head;
+     tmp->data = pd;
+     tmp->data->id = pp->count++;
+     pp->head = tmp;
+     
+     pthread_mutex_unlock(&pp->mtx_p);
+          
+     sem_post(&pp->sem_empty);
 }
 
-void pool_take(pool_t* pp)
+data_t* pool_take(pool_t* pp)
 {
-    node_t* pn = NULL;
+    node_t* tmp = NULL;
+    data_t* ret = NULL;
+    pthread_mutex_lock(&pp->mtx_c);
     
-    pthread_mutex_lock(&pp->mtxc);
-    while(!pp->head)
+    while(pp->head == NULL)
     {
-        pthread_cond_wait(&pp->cond, &pp->mtxc);
-    }
-    pthread_mutex_lock(&pp->mtxp);
+        sem_wait(&pp->sem_empty);
+    }    
+    pthread_mutex_lock(&pp->mtx_p);
     
-    pn = pp->head;
-    pp->head = pp->head->next;
+    tmp = pp->head;
+    pp->head = tmp->next;
     
-    pthread_mutex_unlock(&pp->mtxp);
-    pthread_mutex_unlock(&pp->mtxc);
+    pthread_mutex_unlock(&pp->mtx_p);
+    pthread_mutex_unlock(&pp->mtx_c);  
     
-    printf("take %d\n", pn->data);
-    free(pn);
+    ret = tmp->data;
+    free(tmp);
+    return ret;
 }
