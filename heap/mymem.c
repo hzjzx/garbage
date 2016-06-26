@@ -30,12 +30,12 @@ static void append_node()
 	}
 	pp->next = (page_t*)sys_alloc(NULL, sizeof(page_t));
 
-	node_t* pn = heap->free_node;
-	while (pn->next)
+	node_t** ppn = &heap->free_node;
+	while (*ppn)
 	{
-		pn = pn->next;
+		ppn = &(*ppn)->next;
 	}
-	pn->next = nodepage_init(pp->next);
+	*ppn = nodepage_init(pp->next);
 }
 
 static node_t* get_free_node()
@@ -147,12 +147,17 @@ static void* do_alloc(size_t i)
 			if (prev)
 			{
 				void* ret = pn->addr;
-				prev->len += indsiz[i];
+				node_t* newNode = get_free_node();
+				prev->next = newNode;
+				newNode->addr = ret;
+				newNode->stat = MEM_STAT_USED;
+				newNode->len = indsiz[i];
+				newNode->next = pn;
 				pn->addr = (void*)((size_t)pn->addr + indsiz[i]);
 				pn->len -= indsiz[i];
 				if (pn->len == 0)
 				{
-					prev->next = pn->next;
+					newNode->next = pn->next;
 					pn->next = heap->free_node;
 					heap->free_node = pn;
 					merge(prev);
@@ -242,25 +247,25 @@ static int addr_find(void* addr, node_t** _prev, node_t** _pn, size_t* _i)
 	size_t i = 0;
 	for (i = 0;i < MEM_SIZ_LARGE;i++)
 	{
+		if ((size_t)addr % indsiz[i] != 0)
+		{
+			continue;
+		}
+
 		if (heap->index[i] && (heap->index[i]->addr <= addr))
 		{
 			node_t* prev = NULL;
 			node_t* pn = heap->index[i];
 			while (pn)
 			{
-				if ((pn->addr <= addr) && ((void*)((size_t)pn->addr + pn->len) >= addr))
+				if ((pn->stat == MEM_STAT_USED) && 
+					(pn->addr <= addr) && 
+					((void*)((size_t)pn->addr + pn->len) > addr))
 				{
-					if ((size_t)addr % indsiz[i] == 0)
-					{
-						*_prev = prev;
-						*_pn = pn;
-						*_i = i;
-						return 1;
-					}
-					else
-					{
-						return 0;
-					}
+					*_prev = prev;
+					*_pn = pn;
+					*_i = i;
+					return 1;
 				}
 
 				prev = pn;
@@ -399,7 +404,6 @@ void myfree(void* addr)
 					prev->next = pn->next;
 					pn->next = heap->free_node;
 					heap->free_node = pn;
-					merge(prev);
 				}
 				else
 				{
@@ -414,8 +418,9 @@ void myfree(void* addr)
 				free->next = used->next;
 				used->next = heap->free_node;
 				heap->free_node = used;
-				merge(free);
 			}
+
+			merge(heap->index[i]);
 		}
 		else if(prev)
 		{
@@ -426,7 +431,7 @@ void myfree(void* addr)
 		}
 		else
 		{
-			heap->index[MEM_SIZ_LARGE];
+			heap->index[MEM_SIZ_LARGE] = pn->next;
 			sys_free(pn->addr, pn->len);
 			pn->next = heap->free_node;
 			heap->free_node = pn;
@@ -434,6 +439,37 @@ void myfree(void* addr)
 	}
 	else
 	{
-		fprintf(stderr, "illegal free\n");
+		fprintf(stderr, "illegal free: %16zx\n", addr);
 	}
+}
+
+
+void print_heap(heap_t* heap)
+{
+	int i;
+	for (i = 0;i < MEM_SIZ_LARGE;i++)
+	{
+		node_t* pn = heap->index[i];
+		printf("[%5zd]\n", indsiz[i]);
+		while (pn)
+		{
+			printf("-> begin: %16zx length: %16zx (%s)\n", (size_t)pn->addr, pn->len, (pn->stat == MEM_STAT_FREE) ? "free" : "used");
+			pn = pn->next;
+		}
+		putchar('\n');
+	}
+
+	i = MEM_SIZ_LARGE;
+	node_t* pn = heap->index[i];
+	printf("[LARGE]\n");
+	while (pn)
+	{
+		if (pn->len == 0)
+		{
+			printf("-> begin: %16zx length: %16zx (%s)\n", (size_t)pn->addr, pn->len, (pn->stat == MEM_STAT_FREE) ? "free" : "used");
+			printf("err\n");
+		}
+		pn = pn->next;
+	}
+	putchar('\n');
 }

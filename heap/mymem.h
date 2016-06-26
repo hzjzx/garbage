@@ -12,5 +12,6 @@ void set_heap(heap_t* _heap);
 void* myalloc(size_t len);
 void* myrealloc(void* addr, size_t len);
 void myfree(void* addr);
+void print_heap(heap_t* heap);
 
 #endif

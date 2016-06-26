@@ -65,7 +65,7 @@ static void check_merge(buddy_t* pb, size_t n)
 						(*ppn2) = *ppn;
 						break;
 					}
-					ppn = &(*ppn2)->next;
+					ppn2 = &(*ppn2)->next;
 				}
 				if (!(*ppn2))
 				{
